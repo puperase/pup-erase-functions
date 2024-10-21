@@ -20,7 +20,7 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write('Completed!'.encode('utf-8'))
         return
-    
+
 
 def run_process():
     response = supabase.table("search").select("*, brokers(*), profiles(*)").eq("status", "queued").execute()
@@ -77,14 +77,14 @@ def run_process():
                     
                 else:
                     supabase.table("search") \
-                        .update({"status": 'failed'}) \
+                        .update({"status": 'failed', 'result': {'error': 'No data found'}}) \
                         .eq("id", search['id']) \
                         .execute()
 
         except Exception as e:
             print(e)
             supabase.table("search") \
-                .update({"status": 'failed'}) \
+                .update({"status": 'failed', 'result': {'error': str(e)}}) \
                 .eq("id", search['id']) \
                 .execute()
 
