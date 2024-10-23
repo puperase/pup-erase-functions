@@ -147,7 +147,7 @@ def run_brokers():
 
                 if scraping_result.get('extract', {}).get('name'):
                     supabase.table("search") \
-                        .update({"result": scraping_result, "status": 'completed'}) \
+                        .update({"result": scraping_result['extract'], "status": 'completed'}) \
                         .eq("id", search['id']) \
                         .execute()
                     
