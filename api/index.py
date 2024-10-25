@@ -3,6 +3,7 @@ from http.server import BaseHTTPRequestHandler
 import os
 import requests
 import json
+import time
 from supabase import create_client, Client
 from firecrawl import FirecrawlApp
 from openai import OpenAI
@@ -83,7 +84,7 @@ def run_google():
                     scores.append((item, score))
 
                 scores.sort(key=lambda x: x[1], reverse=True)
-                top_matches = [result[0] for result in scores[:5]]
+                top_matches = [result[0] for result in scores[:20]]
 
                 supabase.table("google") \
                     .update({"result": top_matches, "status": 'completed'}) \
@@ -166,7 +167,8 @@ def run_brokers():
 
 
 if __name__ == '__main__':
-    print("run process")
+    while True:
+        run_google()
+        run_brokers()
 
-    run_google()
-    run_brokers()
+        time.sleep(60)
