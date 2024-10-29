@@ -87,23 +87,23 @@ def run_google():
                 top_matches = [result[0] for result in scores[:20]]
 
                 supabase.table("google") \
-                    .update({"result": top_matches, "status": 'completed'}) \
+                    .update({"results": top_matches, "status": 'completed'}) \
                     .eq("id", google['id']) \
                     .execute()
 
         except Exception as e:
             print(e)
             supabase.table("google") \
-                .update({"status": 'failed', 'result': {'error': str(e)}}) \
+                .update({"status": 'failed', 'results': {'error': str(e)}}) \
                 .eq("id", google['id']) \
                 .execute()
 
 
 def run_brokers():
-    response = supabase.table("search").select("*, brokers(*), profiles(*)").eq("status", "queued").execute()
+    response = supabase.table("searches").select("*, brokers(*), profiles(*)").eq("status", "queued").execute()
 
     for search in response.data:
-        supabase.table("search") \
+        supabase.table("searches") \
             .update({"status": 'in_progress'}) \
             .eq("id", search['id']) \
             .execute()
@@ -112,7 +112,7 @@ def run_brokers():
         profile = search['profiles']
 
         try:
-            if search['status'] == "queued" and broker['enable_scraping'] and broker['scraping_url'] and broker['scraping_selector']:
+            if search['status'] == "queued" and broker['enable_scraping'] and broker['scraping_url']:
                 print(f"Checking {broker['name']} for user {profile['first_name']}")
 
                 # FireCrawl
@@ -147,20 +147,20 @@ def run_brokers():
                 print(scraping_result)
 
                 if scraping_result.get('extract', {}).get('name'):
-                    supabase.table("search") \
+                    supabase.table("searches") \
                         .update({"result": scraping_result['extract'], "status": 'completed'}) \
                         .eq("id", search['id']) \
                         .execute()
                     
                 else:
-                    supabase.table("search") \
+                    supabase.table("searches") \
                         .update({"status": 'failed', 'result': {'error': 'No data found'}}) \
                         .eq("id", search['id']) \
                         .execute()
 
         except Exception as e:
             print(e)
-            supabase.table("search") \
+            supabase.table("searches") \
                 .update({"status": 'failed', 'result': {'error': str(e)}}) \
                 .eq("id", search['id']) \
                 .execute()
