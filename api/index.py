@@ -29,18 +29,18 @@ class handler(BaseHTTPRequestHandler):
 
 
 def run_google():
-    response = supabase.table("google").select("*, profiles(*)").eq("status", "queued").execute()
+    response = supabase.table("searches").select("*, profiles(*)").eq("broker_type", "google").eq("search_status", "queued").execute()
 
     for google in response.data:
-        supabase.table("google") \
-            .update({"status": 'in_progress'}) \
+        supabase.table("searches") \
+            .update({"search_status": 'in_progress'}) \
             .eq("id", google['id']) \
             .execute()
 
         profile = google['profiles']
 
         try:
-            if google['status'] == "queued":
+            if google['search_status'] == "queued":
                 print(f"Checking Google for user {profile['first_name']}")
 
                 # Google Search API
@@ -86,25 +86,25 @@ def run_google():
                 scores.sort(key=lambda x: x[1], reverse=True)
                 top_matches = [result[0] for result in scores[:20]]
 
-                supabase.table("google") \
-                    .update({"results": top_matches, "status": 'completed'}) \
+                supabase.table("searches") \
+                    .update({"search_result": top_matches, "search_status": 'completed'}) \
                     .eq("id", google['id']) \
                     .execute()
 
         except Exception as e:
             print(e)
-            supabase.table("google") \
-                .update({"status": 'failed', 'results': {'error': str(e)}}) \
+            supabase.table("searches") \
+                .update({"search_status": 'failed', 'search_result': {'error': str(e)}}) \
                 .eq("id", google['id']) \
                 .execute()
 
 
 def run_brokers():
-    response = supabase.table("searches").select("*, brokers(*), profiles(*)").eq("status", "queued").execute()
+    response = supabase.table("searches").select("*, brokers(*), profiles(*)").eq("broker_type", "broker_site").eq("search_status", "queued").execute()
 
     for search in response.data:
         supabase.table("searches") \
-            .update({"status": 'in_progress'}) \
+            .update({"search_status": 'in_progress'}) \
             .eq("id", search['id']) \
             .execute()
         
@@ -112,7 +112,7 @@ def run_brokers():
         profile = search['profiles']
 
         try:
-            if search['status'] == "queued" and broker['enable_scraping'] and broker['scraping_url']:
+            if search['search_status'] == "queued" and broker['enable_scraping'] and broker['scraping_url']:
                 print(f"Checking {broker['name']} for user {profile['first_name']}")
 
                 # FireCrawl
@@ -148,20 +148,20 @@ def run_brokers():
 
                 if scraping_result.get('extract', {}).get('name'):
                     supabase.table("searches") \
-                        .update({"result": scraping_result['extract'], "status": 'completed'}) \
+                        .update({"search_result": scraping_result['extract'], "search_status": 'completed'}) \
                         .eq("id", search['id']) \
                         .execute()
                     
                 else:
                     supabase.table("searches") \
-                        .update({"status": 'failed', 'result': {'error': 'No data found'}}) \
+                        .update({"search_status": 'failed', 'search_result': {'error': 'No data found'}}) \
                         .eq("id", search['id']) \
                         .execute()
 
         except Exception as e:
             print(e)
             supabase.table("searches") \
-                .update({"status": 'failed', 'result': {'error': str(e)}}) \
+                .update({"search_status": 'failed', 'search_result': {'error': str(e)}}) \
                 .eq("id", search['id']) \
                 .execute()
 
