@@ -1,10 +1,5 @@
 {
   "redirects": [{ "source": "/", "destination": "/api/check" }],
-  "functions": {
-    "/api/check": {
-      "maxDuration": 300
-    }
-  },
   "crons": [
     {
       "path": "/api/run",
