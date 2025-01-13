@@ -101,7 +101,7 @@ def run_brokers(first_name, last_name, location=None):
     brokers_response = supabase.table("brokers").select("name, scraping_url").eq("enable_scraping", True).execute()
     
     broker_results = []
-    max_brokers = 10  # Set the limit for the number of brokers to process
+    max_brokers = 5
 
     for broker in brokers_response.data:
         if len(broker_results) >= max_brokers:  # Check if we have reached the limit
@@ -117,7 +117,8 @@ def run_brokers(first_name, last_name, location=None):
                     'formats': ['extract'],
                     "extract": {
                         "prompt": f"Extract the person's information from the page for {first_name} {last_name} {'in ' + location if location else ''}."
-                    }
+                    },
+                    "timeout": 10000
                 }
             )
 
