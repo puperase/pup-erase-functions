@@ -63,13 +63,13 @@ def scan_google(first_name, last_name, city, state, zip):
             results.append(item)
 
     # Build array of scraping URLs
-    state_code = helpers.get_state_code(state)
-    location_query = f"{city} {state_code} {zip}"
+    # state_code = helpers.get_state_code(state)
+    # location_query = f"{city} {state_code} {zip}"
 
     scraping_urls = []
     for start in range(0, 100, 10):
         scraping_url = f"""https://www.googleapis.com/customsearch/v1?key={os.environ.get('GOOGLE_SEARCH_KEY')}&cx={
-            os.environ.get('GOOGLE_SEARCH_ID')}&q=Full Name: {first_name} {last_name}, Address: {location_query}&start={start}"""
+            os.environ.get('GOOGLE_SEARCH_ID')}&q={first_name} {last_name}&start={start}"""
         scraping_urls.append(scraping_url)
 
     # Concurrent Thread
