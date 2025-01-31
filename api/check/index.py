@@ -69,7 +69,7 @@ def run_brokers(profile):
         if result:
             results.append({
                 "broker": broker,
-                "result": result
+                "search_result": result
             })
 
     # Array of Brokers to scrap
