@@ -12,17 +12,13 @@ firecrawl = FirecrawlApp(api_key=os.environ.get("FIRECRAWL_KEY"))
 openai = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 
-def find_top_matches(results, first_name, last_name, city, state, zip):
+def find_top_matches(results, profile):
     # Open AI processing setup
-    state_code = helpers.get_state_code(state)
-    person_info = json.dumps({
-        'Name': f"{first_name} {last_name}",
-        'Location': f"{city}, {state_code} {zip}"
-    })
+    search_query = helpers.get_search_query(profile)
 
     # Create a prompt with all results
     prompt = (
-        f"Sort the following search results by relevance for the person {person_info}. \n\n" +
+        f"Sort the following search results by relevance for the person {search_query}. \n\n" +
         "Return only the sorted list of indices (starting from 0) of the results in descending order of relevance:\n\n" +
         "\n".join([f"{i}: {json.dumps(result)}" for i,
                   result in enumerate(results)])
@@ -48,7 +44,7 @@ def find_top_matches(results, first_name, last_name, city, state, zip):
         return []
 
 
-def scan_google(first_name, last_name, city, state, zip):
+def scan_google(profile):
 
     results = []
 
@@ -63,13 +59,12 @@ def scan_google(first_name, last_name, city, state, zip):
             results.append(item)
 
     # Build array of scraping URLs
-    # state_code = helpers.get_state_code(state)
-    # location_query = f"{city} {state_code} {zip}"
+    search_query = helpers.get_search_query(profile)
 
     scraping_urls = []
     for start in range(0, 100, 10):
         scraping_url = f"""https://www.googleapis.com/customsearch/v1?key={os.environ.get('GOOGLE_SEARCH_KEY')}&cx={
-            os.environ.get('GOOGLE_SEARCH_ID')}&q={first_name} {last_name}&start={start}"""
+            os.environ.get('GOOGLE_SEARCH_ID')}&q={search_query}&start={start}"""
         scraping_urls.append(scraping_url)
 
     # Concurrent Thread
@@ -79,46 +74,37 @@ def scan_google(first_name, last_name, city, state, zip):
     return results
 
 
-def scan_brokers(first_name, last_name, city="", state="", zip="", age=""):
+def scan_broker(broker, profile):
 
-    results = []
+    # Build Scraping URL
+    first_name = profile.get('first_name', "")
+    last_name = profile.get('last_name', "")
+    city = profile.get('city', "")
+    state = profile.get('state', "")
+    zip = profile.get('zip', "")
+    age = helpers.calculate_age(profile.get('birth_date'))
+
+    scraping_url = str(broker['scraping_url']).replace("{name}", f"{first_name} {last_name}").replace("{first_name}", first_name).replace(
+        "{last_name}", last_name).replace("{city}", city).replace("{state}", state).replace("{state_code}", helpers.get_state_code(state)).replace("{zip}", zip).replace("{age}", age)
+
+    # Build Search Query
+    search_query = helpers.get_search_query(profile)
 
     # Search Function
-    def run_broker_scraping(broker):
-        state_code = helpers.get_state_code(state)
-        scraping_url = str(broker['scraping_url']).replace("{first_name}", first_name).replace("{last_name}", last_name).replace(
-            "{city}", city).replace("{state}", state).replace("{state_code}", state_code).replace("{zip}", zip).replace("{age}", age)
+    print(f"Broker Search: {scraping_url}")
 
-        print(f"Broker Search: {scraping_url}")
+    scraping_result = firecrawl.scrape_url(
+        scraping_url,
+        params={
+            'formats': ['extract'],
+            "extract": {
+                "prompt": f"Extract the person's information from the page for {search_query}. Just limit the results up to 3 arraies of structures objects for First Name, Last Name, Address, Phone, Email, Gender, Birthday, Family relations, and Other Metadata."
+            },
+            "timeout": 15000
+        }
+    )
 
-        scraping_result = firecrawl.scrape_url(
-            scraping_url,
-            params={
-                'formats': ['extract'],
-                "extract": {
-                    "prompt": f"Extract the person's information from the page for {first_name} {last_name} in {city} {state}. Just limit the results up to 3 arraies of structures objects for First Name, Last Name, Address, Phone, Email, Gender, Birthday, Family relations, and Other Metadata."
-                },
-                "timeout": 10000
-            }
-        )
-
-        if scraping_result.get('extract'):
-            results.append({
-                "broker": broker,
-                "result": scraping_result['extract']
-            })
-        else:
-            results.append({
-                "broker": broker['name'],
-                "error": "No data found"
-            })
-
-    # Array of Brokers to scrap
-    brokers = supabase.table("brokers").select(
-        "name, scraping_url").eq("enable_scraping", True).execute().data
-
-    # Concurrent Thread
-    helpers.thread(brokers[:19], run_broker_scraping)
-
-    # Return all searched results
-    return results
+    if scraping_result.get('extract'):
+        return scraping_result['extract']
+    else:
+        return None

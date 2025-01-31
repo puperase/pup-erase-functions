@@ -25,16 +25,18 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         search_type = params['type']
-        first_name = params['first_name']
-        last_name = params['last_name']
-        city = params.get('city', "")
-        state = params.get('state', "")
-        zip = params.get('zip', "")
+        profile = {
+            'first_name': params['first_name'],
+            'last_name': params['last_name'],
+            'city': params.get('city', None),
+            'state': params.get('state', None),
+            'zip': params.get('zip', None)
+        }
 
         if search_type == 'google':
-            results = run_google(first_name, last_name, city, state, zip)
+            results = run_google(profile)
         elif search_type == 'broker':
-            results = run_brokers(first_name, last_name, city, state, zip)
+            results = run_brokers(profile)
         else:
             self.send_response(400)
             self.end_headers()
@@ -47,21 +49,39 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(results).encode('utf-8'))
 
 
-def run_google(first_name, last_name, city, state, zip):
+def run_google(profile):
     # Fetch 100 search results from Google API
-    results = scanners.scan_google(first_name, last_name, city, state, zip)
+    results = scanners.scan_google(profile)
 
     # Rank first 20 results
-    # top_matches = scanners.find_top_matches(results, first_name, last_name, city, state, zip)
     top_matches = results[:20]
 
     # Return
     return top_matches
 
 
-def run_brokers(first_name, last_name, city, state, zip):
-    # Scrap all brokers
-    results = scanners.scan_brokers(first_name, last_name, city, state, zip)
+def run_brokers(profile):
+    results = []
 
-    # Return
+    def run_broker_scraping(broker):
+        result = scanners.scan_broker(broker, profile)
+
+        if result:
+            results.append({
+                "broker": broker,
+                "result": result
+            })
+
+    # Array of Brokers to scrap
+    brokers = supabase.table("brokers").select(
+        "name, scraping_url").eq("enable_scraping", True).execute().data
+
+    # Dev test Loop
+    for broker in brokers[:30]:
+        run_broker_scraping(broker)
+
+    # Concurrent Thread
+    # helpers.thread(brokers[:30], run_broker_scraping)
+
+    # Return all scanned results
     return results
