@@ -77,11 +77,11 @@ def run_brokers(profile):
         "name, scraping_url").eq("enable_scraping", True).execute().data
 
     # Dev test Loop
-    for broker in brokers[:30]:
-        run_broker_scraping(broker)
+    # for broker in brokers[:30]:
+    #     run_broker_scraping(broker)
 
     # Concurrent Thread
-    # helpers.thread(brokers[:30], run_broker_scraping)
+    helpers.thread(brokers[:30], run_broker_scraping)
 
     # Return all scanned results
     return results
