@@ -93,18 +93,23 @@ def scan_broker(broker, profile):
     # Search Function
     print(f"Broker Search: {scraping_url}")
 
-    scraping_result = firecrawl.scrape_url(
-        scraping_url,
-        params={
-            'formats': ['extract'],
-            "extract": {
-                "prompt": f"Extract the person's information from the page for {search_query}. Just limit the results up to 3 arraies of structures objects for First Name, Last Name, Address, Phone, Email, Gender, Birthday, Family relations, and Other Metadata."
-            },
-            "timeout": 15000
-        }
-    )
+    try:
+        scraping_result = firecrawl.scrape_url(
+            scraping_url,
+            params={
+                'formats': ['extract'],
+                "extract": {
+                    "prompt": f"Extract the person's information from the page for {search_query}. Just limit the results up to 3 arraies of structures objects for First Name, Last Name, Address, Phone, Email, Gender, Birthday, Family relations, and Other Metadata."
+                },
+                "timeout": 15000
+            }
+        )
 
-    if scraping_result.get('extract'):
-        return scraping_result['extract']
-    else:
+        if scraping_result.get('extract'):
+            return scraping_result['extract']
+        else:
+            return None
+
+    except Exception as e:
+        print(e)
         return None
