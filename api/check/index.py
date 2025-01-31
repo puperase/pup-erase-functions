@@ -68,8 +68,14 @@ def run_brokers(profile):
 
         if result:
             results.append({
+                "search_status": "completed",
                 "broker": broker,
                 "search_result": result
+            })
+        else:
+            results.append({
+                "search_status": "failed",
+                "broker": broker,
             })
 
     # Array of Brokers to scrap
