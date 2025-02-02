@@ -28,9 +28,9 @@ class Handler(BaseHTTPRequestHandler):
         profile = {
             'first_name': params['first_name'],
             'last_name': params['last_name'],
-            'city': params.get('city', None),
-            'state': params.get('state', None),
-            'zip': params.get('zip', None)
+            'city': params.get('city', ""),
+            'state': params.get('state', ""),
+            'zip': params.get('zip', "")
         }
 
         if search_type == 'google':
